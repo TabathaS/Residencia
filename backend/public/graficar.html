@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Señal de Electrocardiograma (ECG)</title>
+    <!-- Estilos de Bootstrap -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Incluye Chart.js desde el CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <!-- Barra de Navegación -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarTogglerDemo03"
+            aria-controls="navbarTogglerDemo03" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <a class="navbar-brand" href="inicio.html">Mi Sitio</a>
+
+        <div class="collapse navbar-collapse" id="navbarTogglerDemo03">
+            <ul class="navbar-nav mr-auto mt-2 mt-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="/usuarios">Usuarios</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/subirarchivo">Subir Archivo</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/archivos">Archivos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/formulario">Formulario</a>
+                </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/grafica">ECG</a>
+                    </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/audio">Audio</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Cerrar Sesión</a>
+                </li>
+            </ul>
+            <form class="form-inline my-2 my-lg-0">
+                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+            </form>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <div class="container mt-5">
+        <h1 class="text-center">Gráfico de Señal de Electrocardiograma (ECG)</h1>
+        <canvas id="graficoECG" width="800" height="400"></canvas>
+    </div>
+
+    <!-- Script para generar el gráfico -->
+    <script>
+        // Datos simulados para una señal de ECG (pueden ser reemplazados con datos reales)
+        const etiquetasTiempo = Array.from({ length: 1000 }, (_, i) => i); // Tiempo simulado
+        const datosECG = Array.from({ length: 1000 }, () => Math.sin(Math.random() * 2 * Math.PI) * Math.random()); // Señal aleatoria
+
+        // Configuración de los datos del gráfico
+        const datos = {
+            labels: etiquetasTiempo,
+            datasets: [{
+                label: 'Señal de ECG',
+                data: datosECG,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: false,
+                tension: 0.1
+            }]
+        };
+
+        // Configuración del gráfico
+        const configuracion = {
+            type: 'line',
+            data: datos,
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Tiempo'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Amplitud'
+                        }
+                    }
+                }
+            }
+        };
+
+        // Crear el gráfico
+        const ctx = document.getElementById('graficoECG').getContext('2d');
+        const graficoECG = new Chart(ctx, configuracion);
+    </script>
+
+    <!-- Scripts de Bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>
