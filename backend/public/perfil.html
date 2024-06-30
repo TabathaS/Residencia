@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardioCloud</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="icon" href="/assets/logo.png" sizes="16x16 32x32" type="image/png">
+
+    <style>
+        .comentario-fecha {
+            font-weight: bold;
+            color: gray;
+        }
+
+        .comentario-usuario {
+            font-weight: bold;
+            color: black;
+        }
+
+        .comentario-texto {
+            font-style: italic;
+            color: darkblue;
+        }
+    </style>
+
+</head>
+
+<body>
+    <!-- Barra de navegación -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="inicio.html">
+            <img src="/assets/logo.png" alt="CardioCloud Logo" style="height: 32px; width: 32px;"> CardioCloud
+        </a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout">Cerrar Sesión</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Contenedor principal para la información del paciente -->
+    <div class="container mt-5" id="patient-info">
+        <h2 id="nombrePaciente"></h2>
+        <div id="patientProfile">
+            <!-- Formulario para editar la información del paciente -->
+            <form>
+                <div class="mb-3">
+                    <label for="fechaNacimiento" class="form-label">Fecha de Nacimiento</label>
+                    <input type="date" class="form-control" id="fechaNacimiento">
+                </div>
+                <div class="mb-3">
+                    <label for="genero" class="form-label">Género</label>
+                    <select class="form-control" id="genero">
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="telefono" class="form-label">Teléfono</label>
+                    <input type="text" class="form-control" id="telefono">
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email">
+                </div>
+                <button type="button" class="btn btn-primary" onclick="guardarInfoPaciente()">Guardar</button>
+            </form>
+        </div>
+
+        <!-- Tabla para listar los archivos del paciente -->
+        <h3 class="mt-5">Archivos del Paciente</h3>
+        <table class="table table-striped">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Nombre del Archivo</th>
+                    <th scope="col">Tipo de Archivo</th>
+                    <th scope="col">Fecha de Subida</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaArchivos">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Contenedor para el contenido del archivo seleccionado -->
+    <div class="container mt-5" id="archivoContenido" style="display: none;">
+        <!-- Reproductor de audio -->
+        <audio id="audioPlayer" controls></audio>
+        <!-- Canvas para la gráfica -->
+        <canvas id="grafica" width="400" height="200"></canvas>
+<!-- Sección de comentarios -->
+<h3>Comentarios</h3>
+<div id="comentarios">
+    <div id="listaComentarios" class="border p-3 mb-3" style="max-height: 300px; overflow-y: scroll;"></div>
+    <div class="mb-3">
+    </div>
+    <div class="form-group">
+        <label for="nuevoComentario">Agregar Comentario</label>
+        <textarea class="form-control" id="nuevoComentario"></textarea>
+    </div>
+
+    <!-- Contenedor de los botones -->
+    <div class="d-flex justify-content-between mt-2">
+        <button class="btn btn-primary" onclick="agregarComentario()">Agregar</button>
+        <button class="btn btn-secondary" onclick="regresarAlPerfil()">Regresar al Perfil</button>
+    </div>
+
+    <!-- Contenedor para mensajes de alerta -->
+    <div class="container mt-5">
+        <div id="alertMessage" class="alert" style="display: none;" role="alert"></div>
+    </div>
+
+    <!-- Modal de éxito para subida de archivos -->
+<div class="modal fade" id="uploadSuccessModal" tabindex="-1" role="dialog" aria-labelledby="uploadSuccessModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadSuccessModalLabel">Subida Exitosa</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Archivo subido con éxito.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+    <!-- Scripts necesarios para Bootstrap y Chart.js -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Variables globales
+        let patientId = new URLSearchParams(window.location.search).get('id');
+        let archivoSeleccionado = null;
+
+        // Función que se ejecuta al cargar el documento
+        document.addEventListener('DOMContentLoaded', function () {
+            cargarDatosPaciente();
+            cargarArchivosPaciente();
+        });
+
+        // Función para cargar los datos del paciente
+        function cargarDatosPaciente() {
+            fetch(`/consultar-paciente/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Datos del paciente:', data); // Depuración
+                    document.getElementById('nombrePaciente').textContent = data.nombre;
+                    const fechaNacimiento = new Date(data.fecha_nacimiento);
+                    fechaNacimiento.setMinutes(fechaNacimiento.getMinutes() + fechaNacimiento.getTimezoneOffset());
+                    document.getElementById('fechaNacimiento').value = fechaNacimiento.toISOString().slice(0, 10);
+                    document.getElementById('genero').value = data.genero;
+                    document.getElementById('telefono').value = data.telefono;
+                    document.getElementById('email').value = data.email;
+                })
+                .catch(error => console.error('Error al cargar la información del paciente:', error));
+        }
+
+        // Función para cargar los archivos del paciente
+        function cargarArchivosPaciente() {
+            fetch(`/consultar-archivos-paciente/${patientId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tabla = document.getElementById('tablaArchivos');
+                    data.forEach(archivo => {
+                        const fila = tabla.insertRow();
+                        fila.insertCell().textContent = archivo.nombre_archivo;
+                        fila.insertCell().textContent = archivo.tipo_archivo;
+                        fila.insertCell().textContent = new Date(archivo.fecha_subida).toLocaleDateString('es-MX');
+                        const accionesCell = fila.insertCell();
+                        const verBtn = document.createElement('button');
+                        verBtn.textContent = 'Ver';
+                        verBtn.classList.add('btn', 'btn-primary');
+                        verBtn.addEventListener('click', () => {
+                            verArchivo(archivo);
+                        });
+                        accionesCell.appendChild(verBtn);
+                    });
+                })
+                .catch(error => console.error('Error al cargar los archivos del paciente:', error));
+        }
+
+        // Función para ver el archivo seleccionado
+        function verArchivo(archivo) {
+            archivoSeleccionado = archivo;
+            console.log("Archivo seleccionado:", archivo); // Depuración
+            document.getElementById('patient-info').style.display = 'none';
+            document.getElementById('archivoContenido').style.display = 'block';
+            document.getElementById('audioPlayer').src = `/uploads/${archivo.nombre_archivo}`;
+            cargarComentarios(archivo.id_archivo);
+        }
+
+    // Función para cargar los comentarios del archivo seleccionado
+    function cargarComentarios(id_archivo) {
+        fetch(`/consultar-comentarios/${id_archivo}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Comentarios recibidos:', data); // Depuración
+                const listaComentarios = document.getElementById('listaComentarios');
+               listaComentarios.innerHTML = '';  // Limpiar comentarios anteriores
+                data.forEach(comentario => {
+                    const comentarioDiv = document.createElement('div');
+                    comentarioDiv.classList.add('mb-2');  // Añadir margen entre comentarios
+
+                    const fecha = new Date(comentario.fecha).toLocaleDateString('es-MX', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    comentarioDiv.innerHTML = `
+                    <div class="comentario-fecha">${fecha}</div>
+                    <div class="comentario-usuario">${comentario.usuario}:</div>
+                    <div class="comentario-texto">${comentario.comentario}</div>
+                `;
+
+                listaComentarios.appendChild(comentarioDiv);
+                });
+            })
+            .catch(error => console.error('Error al cargar los comentarios:', error));
+    }
+
+
+   function agregarComentario() {
+        const nuevoComentario = document.getElementById('nuevoComentario').value;
+        const id_archivo = archivoSeleccionado.id_archivo; // Asegúrate de que archivoSeleccionado esté correctamente definido
+
+        console.log("Enviando datos:", { id_archivo, comentario: nuevoComentario });
+
+        fetch('/agregar-comentario', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                archivoId: id_archivo,
+                comentario: nuevoComentario
+            })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                return response.json();
+            })
+            .then(data => {
+                mostrarAlerta('Comentario agregado con éxito', 'success');
+                document.getElementById('nuevoComentario').value = '';
+                cargarComentarios(id_archivo);
+            })
+            .catch(error => {
+                mostrarAlerta('Error al agregar el comentario', 'danger');
+                console.error('Error al agregar el comentario:', error);
+            });
+    }
+
+            function mostrarAlerta(mensaje, tipo) {
+                console.log(`Mostrando alerta: ${mensaje}, Tipo: ${tipo}`); // Depuración
+                const alertDiv = document.getElementById('alertMessage');
+                alertDiv.className = `alert alert-${tipo}`;
+                alertDiv.textContent = mensaje;
+                alertDiv.style.display = 'block';
+                setTimeout(() => {
+                    alertDiv.style.display = 'none';
+                }, 3000);
+            }
+
+        // Función para regresar al perfil del paciente
+        function regresarAlPerfil() {
+            document.getElementById('archivoContenido').style.display = 'none';
+            document.getElementById('patient-info').style.display = 'block';
+            document.getElementById('nuevoComentario').value = '';
+        }
+
+    // Función para guardar la información del paciente
+    function guardarInfoPaciente() {
+        const fechaNacimiento = new Date(document.getElementById('fechaNacimiento').value);
+        fechaNacimiento.setMinutes(fechaNacimiento.getMinutes() + fechaNacimiento.getTimezoneOffset());
+         const data = {
+
+            fecha_nacimiento: fechaNacimiento.toISOString().slice(0, 10),// Formato YYYY-MM-DD
+            genero: document.getElementById('genero').value,
+            telefono: document.getElementById('telefono').value,
+            email: document.getElementById('email').value
+        };
+         console.log('Datos a enviar:', data); // Depuración
+
+        fetch('/actualizar-paciente/' + patientId, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al actualizar la información del paciente');
+                }
+                return response.json();
+            })
+            .then(data => {
+                mostrarAlerta('Información del paciente actualizada con éxito', 'success');
+                cargarDatosPaciente(); // Recargar los datos del paciente para reflejar los cambios
+            })
+            .catch(error => {
+                mostrarAlerta('Error al actualizar la información del paciente', 'danger');
+                console.error('Error al actualizar la información del paciente:', error);
+            });
+    }
+
+    </script>
+</body>
+
+</html>
