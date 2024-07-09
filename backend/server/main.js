@@ -11,9 +11,13 @@ const session = require('express-session');
 const bcrypt = require('bcrypt'); // Importa bcrypt para hashing de contraseñas
 const { authenticateUser } = require('./middleware/auth');
 const { PythonShell } = require('python-shell');
+const { exec } = require('child_process');
+
 
 const app = express();
 const port = process.env.PORT || 5001;
+const basePath = path.join(__dirname, 'uploads');  // Ajusta esta ruta a la ubicación real de tus archivos
+
 
 ffmpeg.setFfmpegPath(require('@ffmpeg-installer/ffmpeg').path);
 
@@ -294,8 +298,66 @@ app.put('/actualizar-paciente/:id', (req, res) => {
     });
 });
 
+//pruebas para los archivos y sus graficas
 
- 
+// Ruta para obtener datos de fonocardiograma
+app.get('/obtener-datos-fonocardiograma/:nombre_archivo', (req, res) => {
+    const nombreArchivo = req.params.nombre_archivo; // Extrae el parámetro nombre_archivo de la URL
+    const filePath = path.join(__dirname, 'uploads', nombreArchivo); // Ajusta la ruta según tu estructura de archivos
+
+    // Ruta absoluta al archivo process_audio.py
+    const scriptPath = path.join(__dirname, 'process_audio.py');
+
+    exec(`python3 ${scriptPath} ${filePath}`,  {maxBuffer: 1024 * 1024* 10 } ,(error, stdout, stderr) => {// Aumenta el tamaño del buffer a 1MB
+        if (error) {
+            console.error(`Error ejecutando el script Python: ${error.message}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .mp3' });
+        }
+        if (stderr) {
+            console.error(`Error en el script Python: ${stderr}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .mp3' });
+        }
+        res.status(200).json(JSON.parse(stdout));
+    });
+});
+
+
+
+app.get('/obtener-datos-wav/:id', (req, res) => {
+    const archivoId = req.params.id;
+    const filePath = path.join(basePath, `${archivoId}.wav`);
+
+    exec(`python3 process_audio.py wav ${filePath}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error ejecutando el script Python: ${error.message}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .wav' });
+        }
+        if (stderr) {
+            console.error(`Error en el script Python: ${stderr}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .wav' });
+        }
+        res.status(200).json(JSON.parse(stdout));
+    });
+});
+
+app.get('/obtener-datos-electrocardiograma/:id', (req, res) => {
+    const archivoId = req.params.id;
+    const filePath = path.join(basePath, `${archivoId}.dat`);
+
+    exec(`python3 process_audio.py dat ${filePath}`, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error ejecutando el script Python: ${error.message}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .dat' });
+        }
+        if (stderr) {
+            console.error(`Error en el script Python: ${stderr}`);
+            return res.status(500).json({ error: 'Error procesando el archivo .dat' });
+        }
+        res.status(200).json(JSON.parse(stdout));
+    });
+});
+
+
 
 // Creacion de dirección para cada pestaña 
 app.get('/formulario', (req, res) => {

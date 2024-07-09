@@ -1,7 +1,13 @@
 import sys
+import os
 import json
 import wave
 import numpy as np
+from pydub import AudioSegment
+
+def convert_mp3_to_wav(mp3_path, wav_path):
+    audio = AudioSegment.from_mp3(mp3_path)
+    audio.export(wav_path, format="wav")
 
 def process_audio(file_path):
     with wave.open(file_path, 'r') as wav_file:
@@ -14,6 +20,13 @@ def process_audio(file_path):
         }
 
 if __name__ == "__main__":
-    file_path = sys.argv[1]
-    data = process_audio(file_path)
+    if len(sys.argv) < 2:
+        print("Usage: python3 process_audio.py <file_path>")
+        sys.exit(1)
+    
+    mp3_path = sys.argv[1]
+    wav_path = os.path.splitext(mp3_path)[0] + '.wav'  # Cambia la extensión a .wav
+    
+    convert_mp3_to_wav(mp3_path, wav_path)
+    data = process_audio(wav_path)
     print(json.dumps(data))

@@ -150,15 +150,11 @@
     <!-- Contenedor para la gráfica -->
     <div id="audioChart"></div>
 
-    <!-- Botón para generar la gráfica -->
-    <button id="graficarButton" class="btn btn-outline-info" onclick="graficar()">Graficar</button>
-
 <!-- Sección de comentarios -->
 <h3>Comentarios</h3>
 <div id="comentarios">
     <div id="listaComentarios" class="border p-3 mb-3" style="max-height: 300px; overflow-y: scroll;"></div>
-    <div class="mb-3">
-    </div>
+    <div class="mb-3"> </div>
     <div class="form-group">
         <label for="nuevoComentario">Agregar Comentario</label>
         <textarea class="form-control" id="nuevoComentario"></textarea>
@@ -262,26 +258,34 @@
         }
 
         // Función para ver el archivo seleccionado
-        function verArchivo(archivo) {
+    function verArchivo(archivo) {
             archivoSeleccionado = archivo;
             console.log("Archivo seleccionado:", archivo); // Depuración
             console.log("Tipo de archivo recibido desde el servidor:", archivo.tipo_archivo); // Depuración
 
             document.getElementById('patient-info').style.display = 'none';
             document.getElementById('archivoContenido').style.display = 'block';
-            document.getElementById('audioPlayer').src = `/uploads/${archivo.nombre_archivo}`;
-            document.getElementById('audioChart').innerHTML = ''; // Limpiar la gráfica anterior
-           
-             // Inicializar la gráfica vacía
-            const layout = {
-                title: 'Señal de Audio',
-                xaxis: { title: 'Tiempo (s)' },
-                yaxis: { title: 'Amplitud' }
-            };
-            Plotly.newPlot('audioChart', [], layout);
-            cargarComentarios(archivo.id_archivo);
+            document.getElementById('listaComentarios').innerHTML = '';  // Limpiar comentarios anteriores
+
+            if (archivo.tipo_archivo === 'Fonocardiograma') {
+                document.getElementById('audioPlayer').style.display = 'block';
+                document.getElementById('audioPlayer').src = `/uploads/${archivo.nombre_archivo}`; // Ajusta la ruta del archivo de audio
+                document.getElementById('audioChart').style.display = 'block';
+                document.getElementById('comentarios').style.display = 'block';
+                document.getElementById('audioChart').innerHTML = ''; // Limpiar la gráfica anterior
+
+                generarGraficaFonocardiograma(archivo.nombre_archivo);
+                cargarComentarios(archivo.id_archivo);
+            } else if (archivo.tipo_archivo === 'Electrocardiograma') {
+                document.getElementById('audioPlayer').style.display = 'none';
+                document.getElementById('audioChart').style.display = 'block';
+                document.getElementById('comentarios').style.display = 'block';
+                document.getElementById('audioChart').innerHTML = ''; // Limpiar la gráfica anterior
+
+                generarGraficaElectrocardiograma(archivo.nombre_archivo);
+                cargarComentarios(archivo.id_archivo);
+            }
         }
-         
 
     // Función para cargar los comentarios del archivo seleccionado
     function cargarComentarios(id_archivo) {
@@ -402,6 +406,61 @@
                 console.error('Error al actualizar la información del paciente:', error);
             });
     }
+
+    function generarGraficaFonocardiograma(nombreArchivo) {
+    fetch(`/obtener-datos-fonocardiograma/${nombreArchivo}`)
+        .then(response => response.json())
+        .then(data => {
+
+             if (!data.samples || !data.frame_rate) {
+                throw new Error('Datos inválidos recibidos del servidor');
+            }
+
+            const trace = {
+                x: data.samples.map((_, index) => index / data.frame_rate),
+                y: data.samples,
+                type: 'scatter'
+            };
+
+            const layout = {
+                title: 'Señal de Fonocardiograma',
+                xaxis: { title: 'Tiempo (s)' },
+                yaxis: { title: 'Amplitud' }
+            };
+
+            Plotly.newPlot('audioChart', [trace],layout);
+        })
+        .catch(error => console.error('Error al generar la gráfica:', error));
+}
+
+    function generarGraficaElectrocardiograma(id_archivo) {
+        fetch(`/obtener-datos-electrocardiograma/${id_archivo}`)
+            .then(response => response.json())
+            .then(data => {
+                const trace = {
+                    x: data.tiempos,
+                    y: data.valores,
+                    type: 'scatter'
+                };
+
+                const layout = {
+                    title: 'Señal de Electrocardiograma',
+                    xaxis: { title: 'Tiempo (s)' },
+                    yaxis: { title: 'Amplitud' }
+                };
+                Plotly.newPlot('audioChart', [trace],layout);
+            })
+            .catch(error => console.error('Error al generar la gráfica:', error));
+    }
+
+    function graficar() {
+            if (archivoSeleccionado.tipo_archivo === 'Fonocardiograma') {
+                generarGraficaFonocardiograma(archivoSeleccionado.nombre_archivo);
+            } else if (archivoSeleccionado.tipo_archivo === 'Electrocardiograma') {
+                generarGraficaElectrocardiograma(archivoSeleccionado.nombre_archivo);
+            }
+        }
+
 
     </script>
 </body>
