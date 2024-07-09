@@ -7,6 +7,58 @@
     <title>CardioCloud</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="icon" href="/assets/logo.png" sizes="16x16 32x32" type="image/png">
+    <style>
+       .table-container {
+            border: 1px solid #ddd;
+            border-radius: 0.45rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            background-color: white;
+        }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #90c0c6;
+        }
+        .table-header .table-title {
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+        .table-header .search-container {
+            display: flex;
+            align-items: center;
+        }
+        .table-header .search-container input {
+            border-radius: 0.25rem;
+            border: 1px solid #ddd;
+            padding: 0.5rem;
+            margin-right: 0.5rem;
+        }
+        .table-custom {
+            width: 100%;
+        }
+        .table-custom th, .table-custom td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0.75rem;
+        }
+        .table-custom th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .table-custom .table-footer {
+            background-color: #f8f9fa;
+            text-align: right;
+            padding: 0.75rem;
+        }
+</style>
+
 </head>
 
 <body>
@@ -34,9 +86,17 @@
     </nav>
 
     <div class="container mt-5">
-        <h2>Pacientes Registrados</h2>
-        <table class="table table-striped">
-            <thead class="thead-dark">
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-title">Pacientes Registrados</div>
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="Buscar">
+                    <button class="btn btn-outline-light" onclick="buscar()">Buscar</button>
+                    <div class="suggestions" id="suggestions"></div>
+                </div>
+            </div>
+        <table class="table table-custom">
+            </thead>
                 <tr>
                     <th scope="col">Nombre</th>
                     <th scope="col">Fecha Nacimiento</th>
@@ -50,6 +110,7 @@
             <tbody id="tablaPacientes">
             </tbody>
         </table>
+
         <!-- Contenedor para mensajes de éxito o error -->
         <div id="messageContainer" class="mt-3"></div>
     </div>
@@ -82,8 +143,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                <button type="button" class="btn btn-primary" onclick="submitFile()">Subir Archivo</button>
+                <button type="button" class="btn btn-outline-danger" data-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-outline-info" onclick="submitFile()">Subir Archivo</button>
             </div>
         </div>
     </div>
@@ -104,7 +165,7 @@
                 Archivo subido con éxito.
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-dismiss="modal">Aceptar</button>
+                <button type="button" class="btn btn-outline-success" data-dismiss="modal">Aceptar</button>
             </div>
         </div>
     </div>
@@ -115,33 +176,43 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
+    let pacientesData = [];
+
     document.addEventListener('DOMContentLoaded', function () {
         cargarPacientes();
     });
-
-        function cargarPacientes(){
+    function cargarPacientes() {
         fetch('/consultar-pacientes')
             .then(response => response.json())
             .then(data => {
-                const tabla = document.getElementById('tablaPacientes');
-                data.forEach(paciente => {
-                    const fila = tabla.insertRow();
-                    const cell = fila.insertCell();
-                    cell.innerHTML = `<a href="/perfil.html?id=${paciente.id}">${paciente.nombre}</a>`;
-
-                    const fechaNacimiento = new Date(paciente.fecha_nacimiento);
-                    fechaNacimiento.setMinutes(fechaNacimiento.getMinutes() + fechaNacimiento.getTimezoneOffset());
-                    fila.insertCell().textContent = fechaNacimiento.toLocaleDateString('es-MX');
-                    fila.insertCell().textContent = paciente.genero;
-                    fila.insertCell().textContent = paciente.telefono;
-                    fila.insertCell().textContent = paciente.email;
-                    const fechaRegistro = new Date(paciente.fecha_registro).toLocaleDateString('es-MX');
-                    fila.insertCell().textContent = fechaRegistro;
-                    fila.insertCell().innerHTML = `<a href="#" data-toggle="modal" data-target="#uploadModal" data-id="${paciente.id}">Subir</a>`;
-                });
+                pacientesData = data;  // Guardar los datos en la variable global
+                mostrarPacientes(data);
             })
             .catch(error => console.error('Error al cargar los pacientes:', error));
-        }
+    }
+
+    function mostrarPacientes(data) {
+        const tabla = document.getElementById('tablaPacientes');
+        const totalFilas = document.getElementById('totalFilas');
+        tabla.innerHTML = ''; // Limpiar filas existentes
+        data.forEach(paciente => {
+            const fila = tabla.insertRow();
+            fila.insertCell().innerHTML = `<a href="/perfil.html?id=${paciente.id}">${paciente.nombre}</a>`;
+
+            const fechaNacimiento = new Date(paciente.fecha_nacimiento);
+            fechaNacimiento.setMinutes(fechaNacimiento.getMinutes() + fechaNacimiento.getTimezoneOffset());
+            fila.insertCell().textContent = fechaNacimiento.toLocaleDateString('es-MX');
+            fila.insertCell().textContent = paciente.genero;
+            fila.insertCell().textContent = paciente.telefono;
+            fila.insertCell().textContent = paciente.email;
+            const fechaRegistro = new Date(paciente.fecha_registro).toLocaleDateString('es-MX');
+            fila.insertCell().textContent = fechaRegistro;
+            fila.insertCell().innerHTML = `<a href="#" class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#uploadModal" data-id="${paciente.id}">Subir</a>`;
+        });
+        totalFilas.textContent = data.length;
+    }
+
+        
         // Función para configurar la ID del paciente en el formulario modal
     $('#uploadModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
@@ -165,26 +236,56 @@
             console.log("Type:", $('#fileType').val());
             console.log("Patient ID:", $('#patientId').val());
 
-            $.ajax({
-                type: "POST",
-                url: "/subir_archivo_px",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    $('#uploadModal').modal('hide');
-                    $('#uploadSuccessModal').modal('show');
-                    cargarArchivosPaciente(); // Recargar la lista de archivos
-                },
-                error: function () {
-                    $('#uploadModal').modal('hide');
-                    $('#messageContainer').html('<div class="alert alert-danger" role="alert">Error al subir archivo.</div>');
-                    setTimeout(() => {
-                        $('#messageContainer').html('');
-                    }, 5000);
+                    $.ajax({
+                        type: "POST",
+                        url: "/subir_archivo_px",
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function (response) {
+                            if(response.success){
+                                $('#uploadModal').modal('hide');
+                                $('#uploadSuccessModal').modal('show');
+                                setTimeout(() => {
+                                    $('#uploadSuccessModal').modal('hide');
+                                }, 3000);
+                            cargarPacientes(); // Recargar la lista de pacientes para reflejar los cambios
+                            }else{
+                                 $('#uploadModal').modal('hide');
+                                alert('Error: ' + response.message);
+                            }
+                        },
+                        error: function () {
+                            $('#uploadModal').modal('hide');
+                            alert('Error al subir archivo.');
+                        }
+                    });
                 }
-            });
-        }
+
+                function buscar() {
+                    const input = document.getElementById('searchInput').value.toLowerCase();
+                   const suggestions = document.getElementById('suggestions');
+                    suggestions.innerHTML = ''; // Clear existing suggestions
+                    if (input === '') {
+                        mostrarPacientes(pacientesData);
+                        return;
+                    }
+
+                    const filteredData = pacientesData.filter(paciente => paciente.nombre.toLowerCase().includes(input));
+                    mostrarPacientes(filteredData);
+
+                    filteredData.forEach(paciente => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.classList.add('suggestion-item');
+                        suggestionItem.textContent = paciente.nombre;
+                        suggestionItem.onclick = () => {
+                            document.getElementById('searchInput').value = paciente.nombre;
+                            suggestions.innerHTML = '';
+                            mostrarPacientes([paciente]);
+                        };
+                        suggestions.appendChild(suggestionItem);
+                    });
+                }
     </script>
 </body>
 

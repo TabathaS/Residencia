@@ -10,6 +10,7 @@ const mysql = require("mysql2"); // importar biblioteca que permite la conexion 
 const session = require('express-session');
 const bcrypt = require('bcrypt'); // Importa bcrypt para hashing de contraseñas
 const { authenticateUser } = require('./middleware/auth');
+const { PythonShell } = require('python-shell');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -104,7 +105,6 @@ app.get('/logout', (req, res) => {
   });
 });
 
-
 // Ruta para registrar un nuevo usuario
 app.post('/registrar-usuario', (req, res) => {
   const { nombre, correo, contraseña, codigo } = req.body;
@@ -197,7 +197,6 @@ app.get('/consultar-paciente/:id', (req, res) => {
     });
 });
 
-
 // POST para subir archivo específico para un paciente
 app.post('/subir_archivo_px', upload.single('file'), (req, res) => {
   const { patientId, type } = req.body; // Datos recibidos del formulario
@@ -216,6 +215,7 @@ app.post('/subir_archivo_px', upload.single('file'), (req, res) => {
       return;
     } else {
       console.log('Archivo registrado con éxito:', results);
+      res.status(200).json({ success: true, message: 'Archivo subido con éxito' });
     }
   });
 });
@@ -230,42 +230,6 @@ app.get('/consultar-archivos-paciente/:id', (req, res) => {
     } else {
       console.log('Archivos consultados con éxito');
       res.status(200).json(results);
-    }
-  });
-});
-
-// CONSULTAR ARCHIVOS ECG
-app.get('/consultar-ecg-pacientes/:id', (req, res) => {
-  const pacienteId = req.params.id;
-  const tipo_Archivo = 'Electrocardiograma'; // Tipo de archivo a consultar
-
-  pool.query(
-    'SELECT * FROM archivos_paciente WHERE id_paciente = ? AND tipo_archivo = ?',
-    [pacienteId, tipo_Archivo],
-    (err, results) => {
-      if (err) {
-        console.error('Error al consultar los archivos de ECG:', err);
-        res.status(500).send('Error interno del servidor');
-        return;
-      }
-      res.json(results);
-    }
-  );
-});
-
-app.post('/subir-archivo', upload.single('archivo'), (req, res) => {
-  const { id, tipo_archivo } = req.body; // Asumiendo que recibes el ID del paciente y el tipo del archivo
-  const nombreArchivo = req.file.filename;
-  const fechaSubida = new Date(); // Fecha actual
-
-  const sql = 'INSERT INTO archivos_paciente (id_paciente, nombre_archivo, tipo_archivo, fecha_subida) VALUES (?, ?, ?, ?)';
-  pool.query(sql, [id, nombreArchivo, tipo_archivo, fechaSubida], (err, results) => {
-    if (err) {
-      console.error('Error al insertar en la base de datos:', err);
-      res.status(500).send('Error al insertar los datos del archivo');
-    } else {
-      console.log('Archivo registrado con éxito:', results);
-      res.status(200).send('Archivo subido y registrado con éxito');
     }
   });
 });
@@ -329,6 +293,9 @@ app.put('/actualizar-paciente/:id', (req, res) => {
         res.json({ message: 'Perfil actualizado con éxito' });
     });
 });
+
+
+ 
 
 // Creacion de dirección para cada pestaña 
 app.get('/formulario', (req, res) => {

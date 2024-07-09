@@ -7,22 +7,76 @@
     <title>CardioCloud</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="icon" href="/assets/logo.png" sizes="16x16 32x32" type="image/png">
-
+    
     <style>
-        .comentario-fecha {
+                .table-container {
+            border: 1px solid #ddd;
+            border-radius: 0.45rem;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            background-color: white;
+        }
+    
+        .table-header {
+            padding: 1rem;
+            background-color: #90c0c6;
+        }
+    
+        .table-header .table-title {
+            font-family: Arial, sans-serif;
+            font-size: 24px;
             font-weight: bold;
-            color: gray;
+            color: white;
         }
+    
+        .table-custom {
+            width: 100%;
+        }
+    
+        .table-custom th,
+        .table-custom td {
+            text-align: center;
+            vertical-align: middle;
+            padding: 0.75rem;
+        }
+    
+        .table-custom th {
+            background-color: #90c0c6;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+    
+        .table-custom .table-footer {
+            background-color: #f8f9fa;
+            text-align: right;
+            padding: 0.75rem;}
 
-        .comentario-usuario {
-            font-weight: bold;
-            color: black;
-        }
+     .comentario-container {
+    border: 1px solid #ddd;
+    border-radius: 0.25rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #f9f9f9;
+}
 
-        .comentario-texto {
-            font-style: italic;
-            color: darkblue;
-        }
+.comentario-fecha-usuario {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.comentario-usuario {
+    font-weight: bold;
+    color: #333;
+}
+
+.comentario-texto {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    color: #000;
+}
     </style>
 
 </head>
@@ -68,14 +122,14 @@
                     <label for="email" class="form-label">Email</label>
                     <input type="email" class="form-control" id="email">
                 </div>
-                <button type="button" class="btn btn-primary" onclick="guardarInfoPaciente()">Guardar</button>
+                <button type="button" class="btn btn-outline-info" onclick="guardarInfoPaciente()">Guardar</button>
             </form>
         </div>
 
         <!-- Tabla para listar los archivos del paciente -->
-        <h3 class="mt-5">Archivos del Paciente</h3>
-        <table class="table table-striped">
-            <thead class="thead-dark">
+        <h3 class="mt-5">Archivos</h3>
+        <table class="table table-container">
+            <thead>
                 <tr>
                     <th scope="col">Nombre del Archivo</th>
                     <th scope="col">Tipo de Archivo</th>
@@ -86,14 +140,19 @@
             <tbody id="tablaArchivos">
             </tbody>
         </table>
-    </div>
-
+</div>
     <!-- Contenedor para el contenido del archivo seleccionado -->
     <div class="container mt-5" id="archivoContenido" style="display: none;">
-        <!-- Reproductor de audio -->
-        <audio id="audioPlayer" controls></audio>
-        <!-- Canvas para la gráfica -->
-        <canvas id="grafica" width="400" height="200"></canvas>
+    
+    <!-- Reproductor de audio -->
+    <audio id="audioPlayer" controls></audio>
+
+    <!-- Contenedor para la gráfica -->
+    <div id="audioChart"></div>
+
+    <!-- Botón para generar la gráfica -->
+    <button id="graficarButton" class="btn btn-outline-info" onclick="graficar()">Graficar</button>
+
 <!-- Sección de comentarios -->
 <h3>Comentarios</h3>
 <div id="comentarios">
@@ -107,8 +166,8 @@
 
     <!-- Contenedor de los botones -->
     <div class="d-flex justify-content-between mt-2">
-        <button class="btn btn-primary" onclick="agregarComentario()">Agregar</button>
-        <button class="btn btn-secondary" onclick="regresarAlPerfil()">Regresar al Perfil</button>
+        <button class="btn btn-outline-info" onclick="agregarComentario()">Agregar</button>
+        <button class="btn btn-outline-warning" onclick="regresarAlPerfil()">Regresar al Perfil</button>
     </div>
 
     <!-- Contenedor para mensajes de alerta -->
@@ -130,7 +189,7 @@
         Archivo subido con éxito.
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-dismiss="modal">Aceptar</button>
+        <button type="button" class="btn btn-outline-success" data-dismiss="modal">Aceptar</button>
       </div>
     </div>
   </div>
@@ -140,11 +199,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
     <script>
         // Variables globales
         let patientId = new URLSearchParams(window.location.search).get('id');
-        let archivoSeleccionado = null;
+        let archivoSeleccionado;
 
         // Función que se ejecuta al cargar el documento
         document.addEventListener('DOMContentLoaded', function () {
@@ -171,11 +231,17 @@
 
         // Función para cargar los archivos del paciente
         function cargarArchivosPaciente() {
+            console.log('Cargando archivos del paciente...'); // Depuración
             fetch(`/consultar-archivos-paciente/${patientId}`)
                 .then(response => response.json())
                 .then(data => {
                     const tabla = document.getElementById('tablaArchivos');
+                    if (!tabla) {
+                        console.error('Elemento tablaArchivos no encontrado');
+                        return;
+                    }
                     data.forEach(archivo => {
+                        console.log('Archivo cargado:', archivo); // Depuración
                         const fila = tabla.insertRow();
                         fila.insertCell().textContent = archivo.nombre_archivo;
                         fila.insertCell().textContent = archivo.tipo_archivo;
@@ -183,12 +249,14 @@
                         const accionesCell = fila.insertCell();
                         const verBtn = document.createElement('button');
                         verBtn.textContent = 'Ver';
-                        verBtn.classList.add('btn', 'btn-primary');
+                        verBtn.classList.add('btn', 'btn-outline-info');
                         verBtn.addEventListener('click', () => {
+                             console.log('Botón "Ver" presionado para:', archivo); // Depuración
                             verArchivo(archivo);
                         });
                         accionesCell.appendChild(verBtn);
                     });
+                     console.log('Archivos del paciente cargados y botones "Ver" generados.'); // Depuración final
                 })
                 .catch(error => console.error('Error al cargar los archivos del paciente:', error));
         }
@@ -197,11 +265,23 @@
         function verArchivo(archivo) {
             archivoSeleccionado = archivo;
             console.log("Archivo seleccionado:", archivo); // Depuración
+            console.log("Tipo de archivo recibido desde el servidor:", archivo.tipo_archivo); // Depuración
+
             document.getElementById('patient-info').style.display = 'none';
             document.getElementById('archivoContenido').style.display = 'block';
             document.getElementById('audioPlayer').src = `/uploads/${archivo.nombre_archivo}`;
+            document.getElementById('audioChart').innerHTML = ''; // Limpiar la gráfica anterior
+           
+             // Inicializar la gráfica vacía
+            const layout = {
+                title: 'Señal de Audio',
+                xaxis: { title: 'Tiempo (s)' },
+                yaxis: { title: 'Amplitud' }
+            };
+            Plotly.newPlot('audioChart', [], layout);
             cargarComentarios(archivo.id_archivo);
         }
+         
 
     // Función para cargar los comentarios del archivo seleccionado
     function cargarComentarios(id_archivo) {
@@ -213,7 +293,7 @@
                listaComentarios.innerHTML = '';  // Limpiar comentarios anteriores
                 data.forEach(comentario => {
                     const comentarioDiv = document.createElement('div');
-                    comentarioDiv.classList.add('mb-2');  // Añadir margen entre comentarios
+                    comentarioDiv.classList.add('comentario-container');  // Añadir margen entre comentarios
 
                     const fecha = new Date(comentario.fecha).toLocaleDateString('es-MX', {
                         year: 'numeric',
@@ -222,8 +302,10 @@
                     });
 
                     comentarioDiv.innerHTML = `
-                    <div class="comentario-fecha">${fecha}</div>
-                    <div class="comentario-usuario">${comentario.usuario}:</div>
+                    <div class="comentario-fecha-usuario">
+                        <span class="comentario-fecha">${fecha}</span>
+                        <span class="comentario-usuario">${comentario.usuario}</span>
+                    </div>
                     <div class="comentario-texto">${comentario.comentario}</div>
                 `;
 
