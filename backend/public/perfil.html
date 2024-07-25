@@ -9,7 +9,7 @@
     <link rel="icon" href="/assets/logo.png" sizes="16x16 32x32" type="image/png">
     
     <style>
-                .table-container {
+        .table-container {
             border: 1px solid #ddd;
             border-radius: 0.45rem;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -52,31 +52,31 @@
             text-align: right;
             padding: 0.75rem;}
 
-     .comentario-container {
-    border: 1px solid #ddd;
-    border-radius: 0.25rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background-color: #f9f9f9;
-}
+        .comentario-container {
+        border: 1px solid #ddd;
+        border-radius: 0.25rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f9f9f9;
+        }
 
-.comentario-fecha-usuario {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.9rem;
-    color: #555;
-}
+        .comentario-fecha-usuario {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #555;
+        }
 
-.comentario-usuario {
-    font-weight: bold;
-    color: #333;
-}
+        .comentario-usuario {
+            font-weight: bold;
+            color: #333;
+        }
 
-.comentario-texto {
-    margin-top: 0.5rem;
-    font-size: 1rem;
-    color: #000;
-}
+        .comentario-texto {
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            color: #000;
+        }
     </style>
 
 </head>
@@ -149,6 +149,7 @@
 
     <!-- Contenedor para la gráfica -->
     <div id="audioChart"></div>
+
 
 <!-- Sección de comentarios -->
 <h3>Comentarios</h3>
@@ -276,7 +277,7 @@
 
                 generarGraficaFonocardiograma(archivo.nombre_archivo);
                 cargarComentarios(archivo.id_archivo);
-            } else if (archivo.tipo_archivo === 'Electrocardiograma') {
+            } else if (archivo.tipo_archivo === 'Electrocardiograma' && archivo.nombre_archivo.endsWith('.dat')) {
                 document.getElementById('audioPlayer').style.display = 'none';
                 document.getElementById('audioChart').style.display = 'block';
                 document.getElementById('comentarios').style.display = 'block';
@@ -433,33 +434,28 @@
         .catch(error => console.error('Error al generar la gráfica:', error));
 }
 
-    function generarGraficaElectrocardiograma(id_archivo) {
-        fetch(`/obtener-datos-electrocardiograma/${id_archivo}`)
+    function generarGraficaElectrocardiograma(nombreArchivo) {
+        fetch(`/obtener-datos-electrocardiograma/${nombreArchivo}`)
             .then(response => response.json())
             .then(data => {
+                if (data.error) {
+                    console.error('Error en los datos:', data.error);
+                    return;
+                }
                 const trace = {
-                    x: data.tiempos,
-                    y: data.valores,
+                    x: data.timestamps,
+                    y: data.signals,
                     type: 'scatter'
                 };
-
                 const layout = {
                     title: 'Señal de Electrocardiograma',
                     xaxis: { title: 'Tiempo (s)' },
                     yaxis: { title: 'Amplitud' }
                 };
-                Plotly.newPlot('audioChart', [trace],layout);
+                Plotly.newPlot('audioChart', [trace], layout);
             })
             .catch(error => console.error('Error al generar la gráfica:', error));
     }
-
-    function graficar() {
-            if (archivoSeleccionado.tipo_archivo === 'Fonocardiograma') {
-                generarGraficaFonocardiograma(archivoSeleccionado.nombre_archivo);
-            } else if (archivoSeleccionado.tipo_archivo === 'Electrocardiograma') {
-                generarGraficaElectrocardiograma(archivoSeleccionado.nombre_archivo);
-            }
-        }
 
 
     </script>
